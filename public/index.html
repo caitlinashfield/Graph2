@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" /> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link rel="stylesheet" href="styles.css">
+    <link rel="shortcut icon" href="favicon.png"/>
+    <title>What would you do?</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0/dist/Chart.min.js"></script> 
+  </head>
+
+  <body>
+    <h1 align="center">What would you do?</h1>
+    <div>
+     <p>
+      Are you
+      <!-- under 21 / 21+ checkboxes -->
+      <!-- set name= as the value for both checkboxes -->
+      <input type="checkbox" name="age"  value="" oninput="selectOnlyThis(this.name, this.id)" id="under">
+      <label>
+        <span style="color: #ff364a"><b>under</b></span> 21
+      </label>
+      <input type="checkbox" name="age" value="" oninput="selectOnlyThis(this.name, this.id)" id="over">
+      <label>
+        or 21 and <span style="color: #ff80ea"><b>over</b></span>?
+      </label>
+    </p>
+
+    <p>
+      Would you save 
+      <!-- one / five checkboxes -->
+      <!-- set name= as the value for both checkboxes -->
+      <input type="checkbox" name="save"  value="" oninput="selectOnlyThis(this.name, this.id)" id="one">
+      <label>
+        <span style="color: #37bf6b"><b>one</b></span> person or
+      </label>
+      <input type="checkbox" name="save" value="" oninput="selectOnlyThis(this.name, this.id)" id="five">
+      <label>
+        <span style="color: #5cd0f7 "><b>five</b></span> people?
+      </label>
+    </p>
+
+    <p><button id="submit">Submit</button>
+    </p>
+  </div>
+
+    <div id="canvas-holder" style="width:60%">
+    <canvas id="chart"></canvas>
+    </div>
+
+    <script>
+      // select only one checkbox
+      // this function ensures only one checkbox is selected
+      function selectOnlyThis(name, id) {
+          var elName = document.getElementsByName(name);
+          for (var i = 0;i <= 1; i++){
+            if (elName[i].id != id) {
+              elName[i].checked = false;
+            };
+          }
+          document.getElementsByName(id).checked = true;
+      }
+
+      chartIt();
+
+      const buttonSubmit = document.getElementById('submit');
+
+      // submit data to db
+      buttonSubmit.addEventListener('click', async event => { 
+        // changed under and over to .checked
+        // the db will either show true or false
+        const one = document.getElementById('one').checked;
+        const five = document.getElementById('five').checked;
+        const under = document.getElementById('under').checked;
+        const over = document.getElementById('over').checked;
+
+        const data = {one,five,under,over};
+
+        const options = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data) 
+        };
+
+        const response = await fetch('/api', options); 
+        const json = await response.json(); 
+
+        chartIt();
+      });
+
+      async function chartIt() {
+        const response = await fetch('/api'); 
+        const data = await response.json();
+
+        console.log(data);
+             
+        // under 21 who save one
+        let underSaveOne = 0;
+        // under 21 who save five
+        let underSaveFive = 0;
+        // over 21 who save one
+        let overSaveOne = 0;
+        // over 21 who save five
+        let overSaveFive = 0;
+
+        for (let i = 0; i < data.length; i++){ 
+          if (data[i].under && data[i].one) {
+            underSaveOne++;
+          } else if (data[i].under && data[i].five) {
+            underSaveFive++;
+          } else if (data[i].over && data[i].one) {
+            overSaveOne++;
+          } else if (data[i].over && data[i].five) {
+            overSaveFive++;
+          };
+
+        }
+        // test output
+        console.log("under 21 who save one:" + underSaveOne);
+        console.log("under 21 who save five:" + underSaveFive);
+        console.log("over 21 who save one:" + overSaveOne);
+        console.log("over 21 who save five:" + overSaveFive);
+        
+        const ctx = document.getElementById('chart').getContext('2d'); 
+
+        const myChart = new Chart(ctx, { 
+          type: 'bar', 
+          data: { 
+            labels: ['Save One','Save Five'], 
+            datasets: [ 
+              {
+                label: 'Under 21',
+                //[no of under who save one, no of under who save five]
+                data: [underSaveOne, underSaveFive], //under 21
+                fill: false,
+                backgroundColor: 'rgba(255, 54, 74, 0.3)', 
+                borderColor: 'rgba(255, 54, 74, 1)', 
+                borderWidth: 2 
+              },
+              {
+                label: '21 and Over', 
+                data: [overSaveOne, overSaveFive],
+                fill: false, 
+                backgroundColor: 'rgba(255, 128, 234, 0.3)', 
+                borderColor: 'rgba(255, 128, 234, 1)', 
+                borderWidth: 2
+              }
+
+              ]
+          },
+
+          options: {
+           scales: { 
+            xAxes: [{ 
+                stacked: true 
+            }],
+            yAxes: [{ 
+                stacked: true
+            }]
+           }
+          }
+        });
+      }
+    </script>
+  </body>
+</html> 
